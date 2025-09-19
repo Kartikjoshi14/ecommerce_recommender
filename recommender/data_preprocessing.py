@@ -43,7 +43,7 @@ def load_and_clean_data(path):
     df.rename(columns=column_name_mapping, inplace=True)
 
     # Convert IDs
-    df['ID'] = df['ID'].astype(str).str.extract(r'(\d+)').astype(float)
-    df['ProdID'] = df['ProdID'].astype(str).str.extract(r'(\d+)').astype(float)
+    df['ID'] = pd.to_numeric(df['ID'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
+    df['ProdID'] = pd.to_numeric(df['ProdID'].astype(str).str.extract(r'(\d+)')[0], errors='coerce')
 
     return df

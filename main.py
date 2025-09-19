@@ -2,6 +2,7 @@ from recommender.data_preprocessing import load_and_clean_data
 from recommender.feature_engineering import add_tags
 from recommender.rating_based import get_top_rated_products
 from recommender.content_based import build_similarity_matrix,recommend_items
+from recommender.collaborative_filtering import build_user_item_matrix, compute_user_similarity, recommend_for_user
 
 
 DATA_PATH = "D:\python workshop\pythonProject\Ecommerce_recommender\data\marketing_sample_for_walmart_com-walmart_com_product_review__20200701_20201231__5k_data.csv"
@@ -26,8 +27,28 @@ if __name__ == "__main__":
     #print("Cosine similarity matrix shape:", cosine_sim_matrix)
 
     # Pick any product name from your dataset
-    item_name = input("Enter a product name: ")
-    top_n = int(input("How many recommendations do you want? "))
-    recommendations = recommend_items(train_data, cosine_sim_matrix, item_name, top_n)
-    print(train_data['Name'].head(10))
-    print("\nRecommendations:\n", recommendations)
+        # item_name = input("Enter a product name: ")
+        # top_n = int(input("How many recommendations do you want? "))
+        # recommendations = recommend_items(train_data, cosine_sim_matrix, item_name, top_n)
+        # print(train_data['Name'].head(10))
+        # print("\nRecommendations:\n", recommendations)
+
+    # Build collaborative filtering matrices
+    print(train_data['ID'].unique()[:10])
+    user_item_matrix = build_user_item_matrix(train_data)   
+    user_similarity = compute_user_similarity(user_item_matrix)
+    user_id = train_data['ID'].iloc[0]  # first user in the dataset
+
+    print("Using user ID:", user_id)
+
+    # Call your recommendation function
+    recommendations = recommend_for_user(
+    user_id=user_id,
+    train_data=train_data,
+    user_item_matrix=user_item_matrix,
+    user_similarity=user_similarity,
+    top_n=5
+)
+
+    print("\nRecommendations for user:", int(user_id))
+    print(recommendations)
