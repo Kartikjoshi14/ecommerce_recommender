@@ -38,11 +38,14 @@ if __name__ == "__main__":
     print(train_data['ID'].unique()[:10])
     user_item_matrix = build_user_item_matrix(train_data)   
     user_similarity = compute_user_similarity(user_item_matrix)
-    user_id = train_data['ID'].iloc[0]  # first user in the dataset
-    item_name = train_data['Name'].iloc[0]
+
+    # Pick user dynamically
+    user_id = float(input("Enter your User ID: "))
+
+    # Pick product dynamically
+    item_name = input("Enter a product name you like: ")
 
     print("Using user ID:", user_id)
-
     # Call your recommendation function
     recommendations = hybrid_recommendations(
     train_data=train_data,

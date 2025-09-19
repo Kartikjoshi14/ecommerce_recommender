@@ -26,4 +26,10 @@ def hybrid_recommendations(train_data, target_user_id, item_name,
     # Sort by score
     hybrid_rec = hybrid_rec.sort_values("Score", ascending=False).head(top_n)
 
+    hybrid_rec = hybrid_rec.merge(
+        train_data[["ProdID", "Name", "Brand", "Category", "ImageURL"]].drop_duplicates(),
+        on="ProdID",
+        how="left"
+    )
+
     return hybrid_rec
