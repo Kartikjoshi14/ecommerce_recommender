@@ -3,6 +3,7 @@ from recommender.feature_engineering import add_tags
 from recommender.rating_based import get_top_rated_products
 from recommender.content_based import build_similarity_matrix,recommend_items
 from recommender.collaborative_filtering import build_user_item_matrix, compute_user_similarity, recommend_for_user
+from recommender.hybrid_recommendation import hybrid_recommendations
 
 
 DATA_PATH = "D:\python workshop\pythonProject\Ecommerce_recommender\data\marketing_sample_for_walmart_com-walmart_com_product_review__20200701_20201231__5k_data.csv"
@@ -38,17 +39,20 @@ if __name__ == "__main__":
     user_item_matrix = build_user_item_matrix(train_data)   
     user_similarity = compute_user_similarity(user_item_matrix)
     user_id = train_data['ID'].iloc[0]  # first user in the dataset
+    item_name = train_data['Name'].iloc[0]
 
     print("Using user ID:", user_id)
 
     # Call your recommendation function
-    recommendations = recommend_for_user(
-    user_id=user_id,
+    recommendations = hybrid_recommendations(
     train_data=train_data,
+    target_user_id=user_id,
+    item_name=item_name,
+    cosine_sim_matrix=cosine_sim_matrix,
     user_item_matrix=user_item_matrix,
     user_similarity=user_similarity,
-    top_n=5
-)
+    top_n=10
+    )
 
-    print("\nRecommendations for user:", int(user_id))
+    print(f"\nHybrid Recommendations for user {int(user_id)} based on '{item_name}':")
     print(recommendations)
