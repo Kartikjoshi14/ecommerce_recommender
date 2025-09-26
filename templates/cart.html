@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - MyShoppie</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+
+<body class="bg-dark text-light">
+
+    <div class="container py-5">
+        <h2 class="mb-4 text-danger"><i class="fas fa-shopping-cart"></i> Your Cart</h2>
+
+        {% if cart_items %}
+        <div class="list-group">
+            {% for item in cart_items %}
+            <div class="list-group-item bg-secondary text-white d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>{{ item.name }}</h5>
+                    <p class="mb-1">Price: ${{ item.price }}</p>
+                    <p class="mb-0">Quantity: {{ item.quantity }}</p>
+                </div>
+                <form method="POST" action="{{ url_for('remove_from_cart') }}">
+                    <input type="hidden" name="name" value="{{ item.name }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-4">
+            <a href="/" class="btn btn-outline-light">Continue Shopping</a>
+            <a href="/checkout" class="btn btn-success">Proceed to Checkout</a>
+        </div>
+        {% else %}
+        <p class="lead">Your cart is empty 😢</p>
+        <a href="/" class="btn btn-outline-light">Go Shopping</a>
+        {% endif %}
+    </div>
+
+</body>
+
+</html>
