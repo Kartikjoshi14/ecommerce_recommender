@@ -226,7 +226,7 @@
                     <p class="text-muted mb-1">Brand: {{ product['Brand'] }}</p>
                     <p class="text-danger">${{ "%.2f"|format(product['Product Price']) }}</p>
                     <!-- Add-to-Cart Form -->
-                    <form action="{{ url_for('add_to_cart') }}" method="post">
+                    <form class="add-to-cart-form">
                         <input type="hidden" name="product_id" value="{{ product['ProdID'] }}">
                         <input type="hidden" name="product_name" value="{{ product['Name'] }}">
                         <input type="hidden" name="product_price" value="{{ product['Product Price'] }}">
@@ -273,6 +273,44 @@
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
+    <script>
+        document.querySelectorAll('.add-to-cart-form').forEach(form => {
+            form.addEventListener('submit', async e => {
+                e.preventDefault(); // prevent page reload
+
+                let formData = new FormData(form);
+
+                let response = await fetch('/add_to_cart', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                let data = await response.json();
+
+                if (data.status === 'success') {
+                    let btn = form.querySelector('button');
+                    btn.innerText = "Added ✅";
+                    btn.disabled = true;
+
+                    // Update cart count in navbar
+                    let cartBadge = document.querySelector('.navbar .badge');
+                    if (cartBadge) {
+                        cartBadge.innerText = parseInt(cartBadge.innerText || 0) + 1;
+                    } else {
+                        let cartLink = document.querySelector('.navbar .nav-link.btn-outline-light[href$="cart"]');
+                        let span = document.createElement('span');
+                        span.className = "badge badge-danger position-absolute";
+                        span.style.top = "0";
+                        span.style.right = "0";
+                        span.innerText = 1;
+                        cartLink.appendChild(span);
+                    }
+                } else {
+                    alert(data.message);
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>
