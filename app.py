@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 import pandas as pd
 from recommender.data_preprocessing import load_and_clean_data
@@ -6,6 +7,8 @@ from recommender.feature_engineering import add_tags
 from recommender.content_based import build_similarity_matrix
 from recommender.collaborative_filtering import build_user_item_matrix, compute_user_similarity
 from recommender.hybrid_recommendation import hybrid_recommendations
+import mysql.connector
+
 
 app = Flask(__name__)
 app.secret_key = "alskdjfwoeieiurlskdjfslkdjf"
@@ -115,33 +118,54 @@ def recommendations():
 
 @app.route("/signup", methods=["POST"])
 def signup():
-    username = request.form.get("username")
-    email = request.form.get("email")
-    password = request.form.get("password")
+    username = request.form['username']
+    email = request.form.get('email')  # optional
+    password = request.form['password']
 
-    if not username or not email or not password:
-        flash("Please fill all fields")
-        return redirect(url_for("index"))
+    hashed_password = generate_password_hash(password)  # Hash it
 
-    new_user = Signup(username=username, email=email, password=password)
-    db.session.add(new_user)
-    db.session.commit()
-    session['user'] = username
-    flash(f"Welcome {username}!")
-    return redirect(url_for("main"))
+    conn = mysql.connector.connect(
+        host="localhost",
+        user="kartikuser",
+        password="Kartik*14",
+        database="recommenderdb"
+    )
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO signup (username, email, password) VALUES (%s, %s, %s)",
+                   (username, email, hashed_password))
+    conn.commit()
+    cursor.close()
+    conn.close()
 
-@app.route("/signin", methods=["POST"])
+    flash("Account created! Please sign in.")
+    return redirect(url_for("signin"))
+
+@app.route('/signin', methods=['POST', 'GET'])
 def signin():
-    username = request.form.get("signinUsername")
-    password = request.form.get("signinPassword")
-    user = Signup.query.filter_by(username=username, password=password).first()
-    if user:
-        session['user'] = username
-        flash("Sign in successful!")
-        return redirect(url_for("main"))
-    else:
-        flash("Invalid username or password")
-        return redirect(url_for("index"))
+    if request.method == 'POST':
+        username = request.form.get('username')  # ✅ matches form
+        password = request.form.get('password')
+
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="kartikuser",         # your MySQL username
+            password="Kartik*14",      # your MySQL password
+            database="recommenderdb"
+        )
+        cursor = conn.cursor(dictionary=True)
+
+        # ✅ query using username instead of email
+        cursor.execute("SELECT * FROM signup WHERE username = %s", (username,))
+        user = cursor.fetchone()
+
+        if user and check_password_hash(user['password'], password):
+            return redirect(url_for('index'))  # or your homepage
+        else:
+            return "Invalid username or password"
+
+    return render_template('login.html')
+
+
     
 @app.route("/add_to_cart", methods=["POST"])
 def add_to_cart():
