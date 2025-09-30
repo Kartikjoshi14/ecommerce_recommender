@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, session
+from flask import Flask, jsonify, request, render_template, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 import pandas as pd
@@ -24,7 +24,8 @@ class Signup(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), nullable=False)
-    password = db.Column(db.String(100), nullable=False)
+    password = db.Column(db.String(255), nullable=False)  # increased length
+
 
 class Cart(db.Model):
     __tablename__ = "cart"
@@ -116,13 +117,47 @@ def recommendations():
 
     return render_template("main.html", content_based_rec=recs, truncate=truncate, message=None)
 
+# --- Signup Route ---
 @app.route("/signup", methods=["POST"])
 def signup():
-    username = request.form['username']
-    email = request.form.get('email')  # optional
-    password = request.form['password']
+    username = request.form.get('username')
+    email = request.form.get('email')
+    password = request.form.get('password')
 
-    hashed_password = generate_password_hash(password)  # Hash it
+    if not username or not email or not password:
+        return jsonify({"status": "error", "message": "Please fill all fields"}), 400
+
+    hashed_password = generate_password_hash(password)
+
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",
+            user="kartikuser",
+            password="Kartik*14",
+            database="recommenderdb"
+        )
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO signup (username, email, password) VALUES (%s, %s, %s)",
+            (username, email, hashed_password)
+        )
+        conn.commit()
+    except mysql.connector.Error as e:
+        return jsonify({"status": "error", "message": f"Error creating account: {str(e)}"}), 400
+    finally:
+        cursor.close()
+        conn.close()
+
+    return jsonify({"status": "success", "message": "Account created successfully! Please log in."})
+
+# --- Signin Route ---
+@app.route('/signin', methods=['POST'])
+def signin():
+    identifier = request.form.get('username_or_email')
+    password = request.form.get('password')
+
+    if not identifier or not password:
+        return jsonify({"status": "error", "message": "Please fill all fields"}), 400
 
     conn = mysql.connector.connect(
         host="localhost",
@@ -130,66 +165,25 @@ def signup():
         password="Kartik*14",
         database="recommenderdb"
     )
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO signup (username, email, password) VALUES (%s, %s, %s)",
-                   (username, email, hashed_password))
-    conn.commit()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT * FROM signup WHERE username = %s OR email = %s",
+        (identifier, identifier)
+    )
+    user = cursor.fetchone()
     cursor.close()
     conn.close()
 
-    flash("Account created! Please sign in.")
-    return redirect(url_for("signin"))
-
-@app.route('/signin', methods=['POST', 'GET'])
-def signin():
-    if request.method == 'POST':
-        username = request.form.get('username')  # ✅ matches form
-        password = request.form.get('password')
-
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="kartikuser",         # your MySQL username
-            password="Kartik*14",      # your MySQL password
-            database="recommenderdb"
-        )
-        cursor = conn.cursor(dictionary=True)
-
-        # ✅ query using username instead of email
-        cursor.execute("SELECT * FROM signup WHERE username = %s", (username,))
-        user = cursor.fetchone()
-
-        if user and check_password_hash(user['password'], password):
-            return redirect(url_for('index'))  # or your homepage
-        else:
-            return "Invalid username or password"
-
-    return render_template('login.html')
-
-
-    
-@app.route("/add_to_cart", methods=["POST"])
-def add_to_cart():
-    if 'user' not in session:
-        return {"status": "error", "message": "Please sign in to add items to cart."}, 401
-
-    username = session['user']
-    product_id = request.form.get("product_id")
-    product_name = request.form.get("product_name")
-    price = float(request.form.get("Product Price") or 0.0)
-
-    # Check if already in cart
-    existing_item = Cart.query.filter_by(username=username, product_id=product_id).first()
-    if existing_item:
-        existing_item.quantity += 1
-        message = f"Added another {product_name} to cart!"
+    if user and check_password_hash(user['password'], password):
+        session['user'] = user['username']
+        return jsonify({"status": "success", "message": f"Welcome back, {user['username']}!"})
     else:
-        new_item = Cart(username=username, product_name=product_name, product_id=product_id, price=price)
-        db.session.add(new_item)
-        message = f"{product_name} added to cart!"
+        return jsonify({"status": "error", "message": "Invalid username/email or password"}), 401
+    
 
-    db.session.commit()
-    return {"status": "success", "message": message}
-
+@app.route("/signup_form")
+def signup_form():
+    return render_template("register.html")
 
 @app.route("/cart")
 def cart():

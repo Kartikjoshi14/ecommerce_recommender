@@ -202,6 +202,7 @@
             </ul>
         </div>
     </nav>
+
     <!-- Hero Section -->
     <div class="hero">
         <video autoplay loop muted>
@@ -239,29 +240,34 @@
     </div>
 
     <!-- Sign Up Modal -->
-    <div class="modal fade" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModalLabel"
-        aria-hidden="true">
+    <div class="modal fade" id="signupModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content text-dark">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="signupModalLabel">Sign Up</h5>
+                    <h5 class="modal-title">Sign Up</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span>&times;</span>
                     </button>
                 </div>
-                <form action="{{ url_for('signup') }}" method="POST">
+                <form id="signup-form">
                     <div class="modal-body">
                         <div class="form-group">
                             <label for="signup-username">Username</label>
                             <input type="text" class="form-control" id="signup-username" name="username" required>
                         </div>
                         <div class="form-group">
+                            <label for="signup-email">Email</label>
+                            <input type="email" class="form-control" id="signup-email" name="email" required>
+                        </div>
+                        <div class="form-group">
                             <label for="signup-password">Password</label>
                             <input type="password" class="form-control" id="signup-password" name="password" required>
                         </div>
+                        <div id="signup-message" class="small mt-2"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-danger">Sign Up</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     </div>
                 </form>
             </div>
@@ -279,16 +285,18 @@
                         <span>&times;</span>
                     </button>
                 </div>
-                <form action="{{ url_for('signin') }}" method="POST">
+                <form id="signin-form">
                     <div class="modal-body">
                         <div class="form-group">
-                            <label for="signin-username">Username</label>
-                            <input type="text" class="form-control" id="signin-username" name="username" required>
+                            <label for="signin-username">Username or Email</label>
+                            <input type="text" class="form-control" id="signin-username" name="username_or_email"
+                                required>
                         </div>
                         <div class="form-group">
                             <label for="signin-password">Password</label>
                             <input type="password" class="form-control" id="signin-password" name="password" required>
                         </div>
+                        <div id="signin-message" class="small mt-2"></div>
                     </div>
                     <div class="modal-footer">
                         <button type="submit" class="btn btn-danger">Sign In</button>
@@ -297,7 +305,6 @@
             </div>
         </div>
     </div>
-
 
     <!-- Footer -->
     <footer class="footer">
@@ -335,25 +342,18 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
     <script>
+        // Add to Cart AJAX
         document.querySelectorAll('.add-to-cart-form').forEach(form => {
             form.addEventListener('submit', async e => {
-                e.preventDefault(); // prevent page reload
-
+                e.preventDefault();
                 let formData = new FormData(form);
-
-                let response = await fetch('/add_to_cart', {
-                    method: 'POST',
-                    body: formData
-                });
-
+                let response = await fetch('/add_to_cart', { method: 'POST', body: formData });
                 let data = await response.json();
 
                 if (data.status === 'success') {
                     let btn = form.querySelector('button');
                     btn.innerText = "Added ✅";
                     btn.disabled = true;
-
-                    // Update cart count in navbar
                     let cartBadge = document.querySelector('.navbar .badge');
                     if (cartBadge) {
                         cartBadge.innerText = parseInt(cartBadge.innerText || 0) + 1;
@@ -370,6 +370,46 @@
                     alert(data.message);
                 }
             });
+        });
+
+        // Sign In AJAX
+        document.getElementById("signin-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            let formData = new FormData(e.target);
+            let response = await fetch("/signin", { method: "POST", body: formData });
+            let data = await response.json();
+            let msgBox = document.getElementById("signin-message");
+
+            if (data.status === "success") {
+                msgBox.classList.remove("text-danger");
+                msgBox.classList.add("text-success");
+                msgBox.innerText = data.message;
+                setTimeout(() => { $('#signinModal').modal('hide'); location.reload(); }, 1200);
+            } else {
+                msgBox.classList.remove("text-success");
+                msgBox.classList.add("text-danger");
+                msgBox.innerText = data.message;
+            }
+        });
+
+        // Sign Up AJAX
+        document.getElementById("signup-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            let formData = new FormData(e.target);
+            let response = await fetch("/signup", { method: "POST", body: formData });
+            let data = await response.json();
+            let msgBox = document.getElementById("signup-message");
+
+            if (data.status === "success") {
+                msgBox.classList.remove("text-danger");
+                msgBox.classList.add("text-success");
+                msgBox.innerText = data.message;
+                setTimeout(() => { $('#signupModal').modal('hide'); location.reload(); }, 1200);
+            } else {
+                msgBox.classList.remove("text-success");
+                msgBox.classList.add("text-danger");
+                msgBox.innerText = data.message;
+            }
         });
     </script>
 </body>
