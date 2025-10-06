@@ -3,44 +3,125 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Cart - MyShoppie</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 
-<body class="bg-dark text-light">
-
-    <div class="container py-5">
-        <h2 class="mb-4 text-danger"><i class="fas fa-shopping-cart"></i> Your Cart</h2>
-
-        {% if cart_items %}
-        <div class="list-group">
-            {% for item in cart_items %}
-            <div class="list-group-item bg-secondary text-white d-flex justify-content-between align-items-center">
-                <div>
-                    <h5>{{ item.name }}</h5>
-                    <p class="mb-1">Price: ${{ item.price }}</p>
-                    <p class="mb-0">Quantity: {{ item.quantity }}</p>
-                </div>
-                <form method="POST" action="{{ url_for('remove_from_cart') }}">
-                    <input type="hidden" name="name" value="{{ item.name }}">
-                    <button type="submit" class="btn btn-danger btn-sm">Remove</button>
-                </form>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="mt-4">
-            <a href="/" class="btn btn-outline-light">Continue Shopping</a>
-            <a href="/checkout" class="btn btn-success">Proceed to Checkout</a>
-        </div>
+<body>
+    <div class="container mt-5">
+        <h2>Your Cart</h2>
+        {% if cart_items and cart_items|length > 0 %}
+        <table class="table table-dark table-striped">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Price</th>
+                    <th>Quantity</th>
+                    <th>Remove</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in cart_items %}
+                <tr>
+                    <td>{{ item.product_name }}</td>
+                    <td>${{ "%.2f"|format(item.product_price) }}</td>
+                    <td>{{ item.quantity }}</td>
+                    <td>
+                        <form class="remove-from-cart-form" method="post">
+                            <input type="hidden" name="product_id" value="{{ item.product_id }}">
+                            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                <!-- Total Purchase Row -->
+                <tr>
+                    <td colspan="4" class="text-right font-weight-bold">
+                        Total: $
+                        {# Jinja can't use lambda or zip, so use a loop #}
+                        {% set total = 0 %}
+                        {% for item in cart_items %}
+                        {% set total = total + (item.product_price * item.quantity) %}
+                        {% endfor %}
+                        {{ "%.2f"|format(total) }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
         {% else %}
-        <p class="lead">Your cart is empty 😢</p>
-        <a href="/" class="btn btn-outline-light">Go Shopping</a>
+        <p>Your cart is empty.</p>
         {% endif %}
-    </div>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-3">Continue Shopping</a>
 
+        <!-- Recommendations Section -->
+        <div class="mt-5">
+            <h3>Recommended Products</h3>
+            <div id="recommendations">
+                {% if recommendations %}
+                <div class="row">
+                    {% for product in recommendations %}
+                    <div class="col-md-3 mb-4">
+                        <div class="card bg-dark text-white">
+                            <img src="{{ product[image_key] }}" class="card-img-top" alt="{{ product[name_key] }}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ product[name_key] }}</h5>
+                                <p class="card-text">${{ "%.2f"|format(product[price_key]) }}</p>
+                                <a href="#" class="btn btn-primary btn-block add-to-cart-btn"
+                                    data-product-id="{{ product['ProdID'] if product.get('ProdID') else product['Name'] }}"
+                                    data-product-name="{{ product[name_key] }}"
+                                    data-product-price="{{ product[price_key] }}">Add to Cart</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p>No recommendations available.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll('.remove-from-cart-form').forEach(form => {
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                let formData = new FormData(form);
+                let response = await fetch('{{ url_for("remove_from_cart") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+                let data = await response.json();
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            });
+        });
+
+        document.querySelectorAll('.add-to-cart-btn').forEach(btn => {
+            btn.addEventListener('click', async function (e) {
+                e.preventDefault();
+                let product_id = btn.getAttribute('data-product-id');
+                let product_name = btn.getAttribute('data-product-name');
+                let product_price = btn.getAttribute('data-product-price');
+                let formData = new FormData();
+                formData.append('product_id', product_id);
+                formData.append('product_name', product_name);
+                formData.append('product_price', product_price);
+                let response = await fetch('{{ url_for("add_to_cart") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+                let data = await response.json();
+                if (data.status === 'success') {
+                    location.reload();
+                } else {
+                    alert(data.message);
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

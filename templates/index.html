@@ -351,21 +351,7 @@
                 let data = await response.json();
 
                 if (data.status === 'success') {
-                    let btn = form.querySelector('button');
-                    btn.innerText = "Added ✅";
-                    btn.disabled = true;
-                    let cartBadge = document.querySelector('.navbar .badge');
-                    if (cartBadge) {
-                        cartBadge.innerText = parseInt(cartBadge.innerText || 0) + 1;
-                    } else {
-                        let cartLink = document.querySelector('.navbar .nav-link.btn-outline-light[href$="cart"]');
-                        let span = document.createElement('span');
-                        span.className = "badge badge-danger position-absolute";
-                        span.style.top = "0";
-                        span.style.right = "0";
-                        span.innerText = 1;
-                        cartLink.appendChild(span);
-                    }
+                    location.reload();
                 } else {
                     alert(data.message);
                 }
